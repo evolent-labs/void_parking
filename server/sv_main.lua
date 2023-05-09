@@ -1,6 +1,5 @@
-local QBCore = exports['qb-core']:GetCoreObject()
-
 local db = require 'server.modules.db'
+lib.locale()
 
 ---@param number number
 ---@param decimals number
@@ -58,24 +57,24 @@ RegisterNetEvent('void_parking:server:vehicleTakeout', function(vehicle)
         TaskWarpPedIntoVehicle(ped, veh, -1)
     end
 
-    TriggerClientEvent("vehiclekeys:client:SetOwner", src, vehicle.plate)
+    addVehicleKeys(src, vehicle.plate, NetworkGetNetworkIdFromEntity(veh))
 
     db.setVehicleUnparked(vehicle.plate)
     Entity(veh).state:set('vehicleProperties', vehicle.mods, true)
 end)
 
-RegisterNetEvent('void_parking:server:storeVehicle', function(vehicle, vehMods)
+RegisterNetEvent('void_parking:server:storeVehicle', function(vehicle, vehMods, hours)
     local src = source
     local ped = GetPlayerPed(src)
     local pedCoords = GetEntityCoords(ped)
 
     local vehicle = NetworkGetEntityFromNetworkId(vehicle)
-    if not vehicle then return notify(src, 'Vehicle not found', 3, 3000) end
+    if not vehicle then return notify(src, locale('vehicle_not_found'), 3, 3000) end
 
     local plate = GetVehicleNumberPlateText(vehicle)
     local vehCoords = GetEntityCoords(vehicle)
 
-    if #(pedCoords - vehCoords) > 7 then return TriggerClientEvent('QBCore:Notify', src, 'Vehicle too far', 'error') end
+    if #(pedCoords - vehCoords) > 7 then return notify(src, locale('too_far'), 3, 3000) end
 
     local vehData = {
         coords = json.encode({
@@ -84,13 +83,14 @@ RegisterNetEvent('void_parking:server:storeVehicle', function(vehicle, vehMods)
             z = round(vehCoords.z, 2),
             h = round(GetEntityHeading(vehicle), 2)
         }),
-        mods = vehMods
+        mods = vehMods,
+        hours = hours
     }
 
     DeleteEntity(vehicle)
     db.updateVehicle(vehData)
 
-    TriggerClientEvent('QBCore:Notify', src, 'Vehicle Stored', 'success')
+    notify(src, locale('vehicle_stored'), 1, 4000)
 end)
 
 lib.callback.register('void_parking:server:getVehiclesNearby', function(source)
@@ -122,12 +122,15 @@ lib.callback.register('void_parking:server:getVehiclesNearby', function(source)
     return nearbyVehicles
 end)
 
-QBCore.Functions.CreateUseableItem('parking_meter', function(source, item)
-	local Player = QBCore.Functions.GetPlayer(source)
-	if Player.Functions.GetItemByName(item.name) then
-		TriggerClientEvent('void_parking:client:placeMeter', source)
-	end
-end)
+-- Framework
+if Config.Inventory ~= 'ox_inventory' then
+    QBCore.Functions.CreateUseableItem('parking_meter', function(source, item)
+        local Player = QBCore.Functions.GetPlayer(source)
+        if Player.Functions.GetItemByName(item.name) then
+            TriggerClientEvent('void_parking:client:placeMeter', source)
+        end
+    end)
+end
 
 AddEventHandler('onServerResourceStart', function(resourceName)
     if resourceName ~= GetCurrentResourceName() then return end

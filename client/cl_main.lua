@@ -1,7 +1,7 @@
-local QBCore = exports['qb-core']:GetCoreObject()
+lib.locale()
 
 local isPreviewing = false
-local previewObject = nil
+local previewObject
 
 local function cancelPlacement()
     DeleteObject(previewObject)
@@ -25,7 +25,7 @@ end
 
 local function storeVehicle()
     local vehicle = GetVehiclePedIsIn(cache.ped, true)
-    if not vehicle then return QBCore.Functions.Notify('Vehicle was not found') end
+    if not vehicle then return notify(locale('vehicle_not_found'), 2, 3000) end
 
     local mods = lib.getVehicleProperties(vehicle)
 
@@ -34,6 +34,7 @@ end
 
 local function openVehiclesMenu()
     local nearbyVehicles = lib.callback.await('void_parking:server:getVehiclesNearby', false)
+    if not next(nearbyVehicles) then return notify(locale('no_vehicles'), 2, 3000) end
 
     local vehicleMenu = {
         id = 'parking_menu',
@@ -113,7 +114,7 @@ RegisterNetEvent('void_parking:client:placeMeter', function()
                     local rotation = GetEntityRotation(previewObject)
                     placeObject(coords, rotation, model)
                 else
-                    QBCore.Functions.Notify('You can\'t place it here', 'error')
+                    notify(locale('cant_place'), 3, 3000)
                 end
             end
         end
@@ -134,7 +135,7 @@ CreateThread(function()
             canInteract = function()
                 return not IsPedInAnyVehicle(cache.ped)
             end,
-            distance = 3
+            distance = 2
         },
         {
             icon = 'fas fa-car',
@@ -143,7 +144,7 @@ CreateThread(function()
                 storeVehicle()
             end,
             distance = 3
-        }
+        },
     }
 
     if Config.Target == 'ox_target' then
