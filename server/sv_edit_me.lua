@@ -45,5 +45,5 @@ end
 ---@param vehnetit number
 function addVehicleKeys(source, plate, vehnetid)
     local src = source
-    TriggerClientEvent(Config.CoreTriggers['vehicle_keys'], src, plate)
+    TriggerClientEvent('vehiclekeys:client:SetOwner', src, plate)
 end

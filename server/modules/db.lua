@@ -30,6 +30,12 @@ function db.getVehicles(citizenid)
     return MySQL.query.await(GET_VEHICLES, { citizenid })
 end
 
+local GET_DEPOT_VEHICLES = 'SELECT * FROM player_vehicles WHERE state = ?'
+---@param citizenid string
+function db.getImpoundVehicles()
+    return MySQL.query.await(GET_DEPOT_VEHICLES, { STATE_UNPARKED })
+end
+
 local GET_METERS = 'SELECT * FROM parkingmeters'
 function db.getParkingMeters()
     return MySQL.query.await(GET_METERS)

@@ -1,79 +1,41 @@
 lib.locale()
 
 local isPreviewing = false
-local previewObject
+local previewObject = nil
+
+---@param text string
+local function showTextUI(text)
+    if Config.TextUI == 'ox_lib' then
+        lib.showTextUI(text)
+    elseif Config.TextUI == 'qbcore' then
+        exports[Config.CoreFolder]:DrawText(text)
+    end
+end
+
+local function hideTextUI()
+    if Config.TextUI == 'ox_lib' then
+        lib.hideTextUI()
+    elseif Config.TextUI == 'qbcore' then
+        exports[Config.CoreFolder]:HideText()
+    end
+end
 
 local function cancelPlacement()
     DeleteObject(previewObject)
     previewObject = nil
     isPreviewing = false
-    lib.hideTextUI()
+    hideTextUI()
 end
 
 ---@param coords vector3
 ---@param rotation vector3
----@param model string
-local function placeObject(coords, rotation, model)
-    FreezeEntityPosition(previewObject, true)
-    TriggerServerEvent('void_parking:server:placeMeter', coords, rotation, model)
-
+---@todo Server event needs model defined
+local function placeObject(coords, rotation)
     DeleteObject(previewObject)
-    previewObject = nil
-    isPreviewing = false
-    lib.hideTextUI()
-end
+    hideTextUI()
 
-local function storeVehicle()
-    local vehicle = GetVehiclePedIsIn(cache.ped, true)
-    if not vehicle then return notify(locale('vehicle_not_found'), 2, 3000) end
-
-    local mods = lib.getVehicleProperties(vehicle)
-
-    TriggerServerEvent('void_parking:server:storeVehicle', VehToNet(vehicle), mods)
-end
-
-local function openVehiclesMenu()
-    local nearbyVehicles = lib.callback.await('void_parking:server:getVehiclesNearby', false)
-    if not next(nearbyVehicles) then return notify(locale('no_vehicles'), 2, 3000) end
-
-    local vehicleMenu = {
-        id = 'parking_menu',
-        title = 'Parking Meter',
-        options = {}
-    }
-
-    for _, car in pairs(nearbyVehicles) do
-        local mods = json.decode(car.mods)
-
-        vehicleMenu.options[#vehicleMenu.options + 1] = {
-            title = QBCore.Shared.Vehicles[car.vehicle].name,
-            description = ('Plate: %s'):format(mods.plate, mods.fuelLevel, mods.engineHealth, mods.bodyHealth),
-            icon = 'car',
-            metadata = {
-                {label = 'Engine', value = mods.engineHealth},
-                {label = 'Body', value = mods.bodyHealth},
-                {label = 'Fuel', value = mods.fuelLevel}
-            },
-            onSelect = function()
-                QBCore.Functions.Progressbar("takeout_vehicle", 'Pulling out vehicle', math.random(3000, 5000), false, true, {
-                    disableMovement = false,
-                    disableCarMovement = true,
-                    disableMouse = false,
-                    disableCombat = true,
-                }, {
-                    animDict = nil,
-                    anim = nil,
-                    flags = 16,
-                }, {}, {}, function()
-                    TriggerServerEvent('void_parking:server:vehicleTakeout', car)
-                end, function()
-                end)
-            end,
-        }
-    end
-
-    lib.registerContext(vehicleMenu)
-    lib.showContext('parking_menu')
+    TriggerServerEvent('void_parking:server:placeMeter', coords, rotation)
+    previewObject, isPreviewing = nil, false
 end
 
 RegisterNetEvent('void_parking:client:placeMeter', function()
@@ -90,7 +52,7 @@ RegisterNetEvent('void_parking:client:placeMeter', function()
     SetEntityCollision(previewObject, false, false)
     FreezeEntityPosition(previewObject, true)
 
-    lib.showTextUI('[E] - Place | [Y] - Rotate | [Q] - Cancel')
+    showTextUI('[E] - Place | [Y] - Rotate | [Q] - Cancel')
 
     while isPreviewing do
         local hit, _, coords, _, _ = lib.raycast.cam(1, 4)
@@ -122,6 +84,63 @@ RegisterNetEvent('void_parking:client:placeMeter', function()
     end
 end)
 
+---@param type? string
+---@param depot? table
+local function openVehiclesMenu(type, depot)
+    local vehicles
+    if type == 'impound' then
+        vehicles = lib.callback.await('void_parking:server:getVehicles', false, 'impound')
+    else
+        vehicles = lib.callback.await('void_parking:server:getVehicles', false)
+    end
+    if not next(vehicles) then return notify(locale('no_vehicles'), 2, 3000) end
+
+    local vehicleMenu = {
+        id = 'parking_menu',
+        title = 'Parking Meter',
+        options = {}
+    }
+
+    for _, car in pairs(vehicles) do
+        local mods = json.decode(car.mods)
+
+        vehicleMenu.options[#vehicleMenu.options + 1] = {
+            title = QBCore.Shared.Vehicles[car.vehicle].name,
+            description = ('Plate: %s'):format(mods.plate, mods.fuelLevel, mods.engineHealth, mods.bodyHealth),
+            icon = 'car',
+            metadata = {
+                {label = 'Engine', value = mods.engineHealth},
+                {label = 'Body', value = mods.bodyHealth},
+                {label = 'Fuel', value = mods.fuelLevel}
+            },
+            onSelect = function()
+                if type == 'impound' then
+                    local data = {
+                        vehicleData = car,
+                        takeoutCoords = depot.takeout_coords
+                    }
+                    TriggerServerEvent('void_parking:server:takeOutImpound', data)
+                else
+                    progressBar(function() TriggerServerEvent('void_parking:server:vehicleTakeout', car) end)
+                end
+            end,
+        }
+    end
+
+    lib.registerContext(vehicleMenu)
+    lib.showContext('parking_menu')
+end
+
+local function storeVehicle()
+    local vehicle = GetVehiclePedIsIn(cache.ped, true)
+    if not vehicle then return notify(locale('vehicle_not_found'), 2, 3000) end
+
+    local mods = lib.getVehicleProperties(vehicle)
+
+    TriggerServerEvent('void_parking:server:storeVehicle', VehToNet(vehicle), mods)
+end
+
+local depot_peds = {}
 CreateThread(function()
     local onSelectParam = Config.Target == 'qb-target' and 'action' or 'onSelect'
 
@@ -147,14 +166,71 @@ CreateThread(function()
         },
     }
 
+    local model = Config.ParkingMeterModel
     if Config.Target == 'ox_target' then
-        exports.ox_target:addModel(Config.ParkingMeterModel, options)
+        exports.ox_target:addModel(model, options)
     elseif Config.Target == 'qb-target' then
-        exports['qb-target']:AddTargetModel(Config.ParkingMeterModel, {
+        exports['qb-target']:AddTargetModel(model, {
             options = options,
             distance = 2.5
         })
     end
+
+    -- Depots
+    for _, depot in pairs(Config.Depots) do
+
+        local ped_model = lib.requestModel(depot.ped_model)
+    
+        local depot_ped = CreatePed(0, ped_model, depot.ped_coords.x, depot.ped_coords.y, depot.ped_coords.z - 1, depot.ped_coords.w, false, true)
+        FreezeEntityPosition(depot_ped, true)
+        SetEntityInvincible(depot_ped, true)
+        SetBlockingOfNonTemporaryEvents(depot_ped, true)
+        TaskStartScenarioInPlace(depot_ped, depot.ped_scenario, 0, true)
+
+        depot_peds[#depot_peds] = ped_model
+
+        local options = {
+            {
+                icon = "fas fa-warehouse",
+                label = depot.depot_name,
+                [onSelectParam] = function()
+                    openVehiclesMenu('impound', depot)
+                end,
+                distance = 2.5
+            }
+        }
+    
+        if Config.Target == 'ox_target' then
+            exports.ox_target:addLocalEntity(depot_ped, options)
+        elseif Config.Target == 'qb-target' then
+            exports['qb-target']:AddTargetModel(depot_ped, {
+                options = options,
+                distance = 2.5
+            })
+        end
+
+        if depot.show_blip then
+            local blip = AddBlipForCoord(depot.ped_coords.xyz)
+            SetBlipSprite(blip, 317)
+            SetBlipDisplay(blip, 4)
+            SetBlipScale(blip, 0.7)
+            SetBlipAsShortRange(blip, true)
+            SetBlipColour(blip, 3)
+            BeginTextCommandSetBlipName("STRING")
+            AddTextComponentSubstringPlayerName(depot.depot_name)
+            EndTextCommandSetBlipName(blip)
+        end
+    end
+end)
+
+lib.callback.register('void_parking:getAvailableSpot', function(positions)
+    for k, v in pairs(positions) do
+        if not IsPositionOccupied(v.x, v.y, v.z, 5, false, true, true) then
+            notify(locale('depot_take_out'), 1, 3000)
+            return v
+        end
+    end
+    notify(locale('depot_err_no_space'), 2, 5000)
 end)
 
 AddStateBagChangeHandler('vehicleProperties', nil, function(bagName, _, value)

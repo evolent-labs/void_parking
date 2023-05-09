@@ -7,11 +7,11 @@ function notify(text, type, time)
     if type and text then
         if Config.Notifications == 'qbcore' then
             if type == 1 then
-                Framework.Functions.Notify(text, 'success')
+                QBCore.Functions.Notify(text, 'success')
             elseif type == 2 then
-                Framework.Functions.Notify(text, 'primary')
+                QBCore.Functions.Notify(text, 'primary')
             elseif type == 3 then
-                Framework.Functions.Notify(text, 'error')
+                QBCore.Functions.Notify(text, 'error')
             end
         elseif Config.Notifications == 'mythic' then
             if type == 1 then
@@ -35,4 +35,23 @@ function notify(text, type, time)
             -- Add your own
         end
     end
+end
+
+---@param func function
+function progressBar(func)
+    QBCore.Functions.Progressbar("takeout_vehicle", 'Pulling out vehicle', math.random(3000, 5000), false, true, {
+        disableMovement = false,
+        disableCarMovement = true,
+        disableMouse = false,
+        disableCombat = true,
+    }, {
+        animDict = nil,
+        anim = nil,
+        flags = 16,
+    }, {}, {}, function()
+        func() 
+    end, 
+    function() -- Cancel
+
+    end)
 end

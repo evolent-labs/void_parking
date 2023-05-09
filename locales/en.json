@@ -3,5 +3,7 @@
     "no_vehicles": "No vehicles here...",
     "too_far": "Vehicle too far",
     "cant_place": "You can't place it here",
-    "vehicle_stored": "Vehicle Stored"
+    "vehicle_stored": "Vehicle Stored",
+    "depot_err_no_space": "There are no available spots to pull out your vehicle! Come back later.",
+    "depot_take_out": "Vehicle taken out the depot!"
 }
