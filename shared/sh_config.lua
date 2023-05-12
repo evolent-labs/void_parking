@@ -1,11 +1,8 @@
 Config = {}
 
-Config.CoreFolder = 'qb-core'
 Config.Target = 'ox_target' -- qb-target | ox_target
 Config.TextUI = 'ox_lib' -- qbcore | ox_lib
 Config.Inventory = 'ox_inventory' -- qb-inventory | ox_inventory
-Config.Notifications = 'qbcore' -- qbcore | mythic_new | okok | other
-Config.UnloadEvent = 'QBCore:Client:OnPlayerUnload'
 
 Config.ParkingMeterModel = 'prop_parkingpay'
 

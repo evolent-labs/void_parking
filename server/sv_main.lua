@@ -1,5 +1,7 @@
-lib.locale()
+local QBCore = exports[Config.CoreFolder]:GetCoreObject()
 local db = require 'server.modules.db'
+
+lib.locale()
 
 ---@param number number
 ---@param decimals number
@@ -47,12 +49,12 @@ RegisterNetEvent('void_parking:server:storeVehicle', function(vehicle, vehMods, 
     local pedCoords = GetEntityCoords(ped)
 
     local vehicle = NetworkGetEntityFromNetworkId(vehicle)
-    if not vehicle then return notify(src, locale('vehicle_not_found'), 3, 3000) end
+    if not vehicle then return TriggerClientEvent('QBCore:Notify', src, locale('vehicle_not_found'), 3, 3000) end
 
     local plate = GetVehicleNumberPlateText(vehicle)
     local vehCoords = GetEntityCoords(vehicle)
 
-    if #(pedCoords - vehCoords) > 7 then return notify(src, locale('too_far'), 3, 3000) end
+    if #(pedCoords - vehCoords) > 7 then return TriggerClientEvent('QBCore:Notify', src, locale('too_far'), 3, 3000) end
 
     local vehData = {
         coords = json.encode({
@@ -68,7 +70,7 @@ RegisterNetEvent('void_parking:server:storeVehicle', function(vehicle, vehMods, 
     DeleteEntity(vehicle)
     db.updateVehicle(vehData)
 
-    notify(src, locale('vehicle_stored'), 1, 4000)
+    TriggerClientEvent('QBCore:Notify', src, locale('vehicle_stored'), 1, 4000)
 end)
 
 RegisterNetEvent('void_parking:server:vehicleTakeout', function(vehicle)
@@ -87,7 +89,7 @@ RegisterNetEvent('void_parking:server:vehicleTakeout', function(vehicle)
         TaskWarpPedIntoVehicle(ped, veh, -1)
     end
 
-    addVehicleKeys(src, vehicle.plate, NetworkGetNetworkIdFromEntity(veh))
+    TriggerClientEvent('vehiclekeys:client:SetOwner', src, vehicle.plate)
 
     db.setVehicleUnparked(vehicle.plate)
     Entity(veh).state:set('vehicleProperties', vehicle.mods, true)
@@ -154,12 +156,11 @@ RegisterNetEvent('void_parking:server:takeOutImpound', function(data)
     end
 
     TriggerClientEvent('ox_lib:setVehicleProperties', src, vehNetId, vehicleMods)
-    addVehicleKeys(src, vehicleMods.plate, vehNetId)
+    TriggerClientEvent('vehiclekeys:client:SetOwner', src, vehicleMods.plate)
 
     impoundVehicles[vehicleMods.plate] = nil
 end)
 
--- Framework
 if Config.Inventory ~= 'ox_inventory' then
     QBCore.Functions.CreateUseableItem('parking_meter', function(source, item)
         local Player = QBCore.Functions.GetPlayer(source)

@@ -1,5 +1,6 @@
-lib.locale()
+local QBCore = exports[Config.CoreFolder]:GetCoreObject()
 
+lib.locale()
 local isPreviewing = false
 local previewObject = nil
 
@@ -36,6 +37,25 @@ local function placeObject(coords, rotation)
 
     TriggerServerEvent('void_parking:server:placeMeter', coords, rotation)
     previewObject, isPreviewing = nil, false
+end
+
+---@param func function
+local function progressBar(func)
+    QBCore.Functions.Progressbar("takeout_vehicle", 'Pulling out vehicle', math.random(3000, 5000), false, true, {
+        disableMovement = false,
+        disableCarMovement = true,
+        disableMouse = false,
+        disableCombat = true,
+    }, {
+        animDict = nil,
+        anim = nil,
+        flags = 16,
+    }, {}, {}, function()
+        func() 
+    end, 
+    function() -- Cancel
+
+    end)
 end
 
 RegisterNetEvent('void_parking:client:placeMeter', function()
@@ -76,7 +96,7 @@ RegisterNetEvent('void_parking:client:placeMeter', function()
                     local rotation = GetEntityRotation(previewObject)
                     placeObject(coords, rotation, model)
                 else
-                    notify(locale('cant_place'), 3, 3000)
+                    QBCore.Functions.Notify(locale('cant_place'), 3, 3000)
                 end
             end
         end
@@ -93,7 +113,7 @@ local function openVehiclesMenu(type, depot)
     else
         vehicles = lib.callback.await('void_parking:server:getVehicles', false)
     end
-    if not next(vehicles) then return notify(locale('no_vehicles'), 2, 3000) end
+    if not next(vehicles) then return QBCore.Functions.Notify(locale('no_vehicles'), 2, 3000) end
 
     local vehicleMenu = {
         id = 'parking_menu',
@@ -133,14 +153,14 @@ end
 
 local function storeVehicle()
     local vehicle = GetVehiclePedIsIn(cache.ped, true)
-    if not vehicle then return notify(locale('vehicle_not_found'), 2, 3000) end
+    if not vehicle then return QBCore.Functions.Notify(locale('vehicle_not_found'), 2, 3000) end
 
     local mods = lib.getVehicleProperties(vehicle)
 
     TriggerServerEvent('void_parking:server:storeVehicle', VehToNet(vehicle), mods)
 end
 
-local depot_peds = {}
+local depotPeds = {}
 CreateThread(function()
     local onSelectParam = Config.Target == 'qb-target' and 'action' or 'onSelect'
 
@@ -179,15 +199,15 @@ CreateThread(function()
     -- Depots
     for _, depot in pairs(Config.Depots) do
 
-        local ped_model = lib.requestModel(depot.ped_model)
+        local pedModel = lib.requestModel(depot.ped_model)
     
-        local depot_ped = CreatePed(0, ped_model, depot.ped_coords.x, depot.ped_coords.y, depot.ped_coords.z - 1, depot.ped_coords.w, false, true)
-        FreezeEntityPosition(depot_ped, true)
-        SetEntityInvincible(depot_ped, true)
-        SetBlockingOfNonTemporaryEvents(depot_ped, true)
-        TaskStartScenarioInPlace(depot_ped, depot.ped_scenario, 0, true)
+        local depotPed = CreatePed(0, pedModel, depot.ped_coords.x, depot.ped_coords.y, depot.ped_coords.z - 1, depot.ped_coords.w, false, true)
+        FreezeEntityPosition(depotPed, true)
+        SetEntityInvincible(depotPed, true)
+        SetBlockingOfNonTemporaryEvents(depotPed, true)
+        TaskStartScenarioInPlace(depotPed, depot.ped_scenario, 0, true)
 
-        depot_peds[#depot_peds] = ped_model
+        depotPeds[#depotPeds] = pedModel
 
         local options = {
             {
@@ -201,9 +221,9 @@ CreateThread(function()
         }
     
         if Config.Target == 'ox_target' then
-            exports.ox_target:addLocalEntity(depot_ped, options)
+            exports.ox_target:addLocalEntity(depotPed, options)
         elseif Config.Target == 'qb-target' then
-            exports['qb-target']:AddTargetModel(depot_ped, {
+            exports['qb-target']:AddTargetModel(depotPed, {
                 options = options,
                 distance = 2.5
             })
@@ -226,11 +246,11 @@ end)
 lib.callback.register('void_parking:getAvailableSpot', function(positions)
     for k, v in pairs(positions) do
         if not IsPositionOccupied(v.x, v.y, v.z, 5, false, true, true) then
-            notify(locale('depot_take_out'), 1, 3000)
+            QBCore.Functions.Notify(locale('depot_take_out'), 1, 3000)
             return v
         end
     end
-    notify(locale('depot_err_no_space'), 2, 5000)
+    QBCore.Functions.Notify(locale('depot_err_no_space'), 2, 5000)
 end)
 
 AddStateBagChangeHandler('vehicleProperties', nil, function(bagName, _, value)
