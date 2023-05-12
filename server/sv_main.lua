@@ -1,4 +1,4 @@
-local QBCore = exports[Config.CoreFolder]:GetCoreObject()
+local QBCore = exports['qb-core']:GetCoreObject()
 local db = require 'server.modules.db'
 
 lib.locale()
