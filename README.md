@@ -1,9 +1,17 @@
-# Discord - https://discord.gg/J6wYuXyZUf
-# Installation
+<div align="center">
+    <img src="https://i.ibb.co/K06mwD5/parking-github.jpg">
+</div>
 
-- Make sure you have the required dependencies listed on the store page
-- Add `void_parking` to your resources folder
-- Add `ensure void_parking` to your server.cfg
-- Run the SQL file
-- Add `parking_meter` and the image (located in the `assets` folder) to your inventory
-- After the server starts up, run `/parkingsetup` in your server console if you have removed your previous parking script
+# A better way to park your vehicles.
+## Void Parking is a simple resource which allows players to create their own parking spots.
+
+## Dependencies
+* [qb-core](https://github.com/qbcore-framework/qb-core)
+* [ox_lib](https://github.com/overextended/ox_lib)
+* [qb-target](https://github.com/qbcore-framework/qb-target) or [ox_target](https://github.com/overextended/ox_target)
+* [oxmysql](https://github.com/overextended/oxmysql/releases/tag/v1.9.3)
+
+## Installation
+* Download the ZIP file and extract it in your resources folder.
+* Run the SQL file
+* Add ensure void_parking to your server.cfg
