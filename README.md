@@ -1,7 +1,7 @@
 <div align="center">
     <img src="https://i.ibb.co/K06mwD5/parking-github.jpg">
 </div>
-<div align='center'><h1>A better way to park your vehicle</h1></div>
+<div align='center'><h1>A better way to park your vehicles</h1></div>
 
 ## Dependencies
 * [qb-core](https://github.com/qbcore-framework/qb-core)
