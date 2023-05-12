@@ -9,7 +9,7 @@ local function showTextUI(text)
     if Config.TextUI == 'ox_lib' then
         lib.showTextUI(text)
     elseif Config.TextUI == 'qbcore' then
-        exports[Config.CoreFolder]:DrawText(text)
+        exports['qb-core']:DrawText(text)
     end
 end
 
@@ -17,7 +17,7 @@ local function hideTextUI()
     if Config.TextUI == 'ox_lib' then
         lib.hideTextUI()
     elseif Config.TextUI == 'qbcore' then
-        exports[Config.CoreFolder]:HideText()
+        exports['qb-core']:HideText()
     end
 end
 
